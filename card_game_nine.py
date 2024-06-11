@@ -10,8 +10,8 @@ pygame.init()
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 GRID_SIZE = 3
-CARD_WIDTH = 100
-CARD_HEIGHT = 150
+CARD_WIDTH = 110
+CARD_HEIGHT = 155
 BOARD_ORIGIN_X = (WINDOW_WIDTH - (GRID_SIZE * CARD_WIDTH)) // 2
 BOARD_ORIGIN_Y = (WINDOW_HEIGHT - (GRID_SIZE * CARD_HEIGHT)) // 2
 FPS = 30
@@ -52,8 +52,8 @@ class Card:
     def animate_color_change(self, new_team):
         old_color = self.color
         new_color = RED if new_team == 'red' else BLUE
-        for i in range(30):  # Simple transition animation
-            ratio = i / 29
+        for i in range(24):
+            ratio = i / 23
             self.color = (
                 int(old_color[0] * (1 - ratio) + new_color[0] * ratio),
                 int(old_color[1] * (1 - ratio) + new_color[1] * ratio),
@@ -121,23 +121,63 @@ def draw_board():
     DISPLAYSURF.blit(red_score_text, (BOARD_ORIGIN_X - CARD_WIDTH * 1.5, BOARD_ORIGIN_Y - 50))
     DISPLAYSURF.blit(blue_score_text, (BOARD_ORIGIN_X + GRID_SIZE * CARD_WIDTH + CARD_WIDTH // 2, BOARD_ORIGIN_Y - 50))
 
+    # Draw the mode indicators
+    font = pygame.font.Font(None, 25)
+    same_mode_text = font.render(f'Same Mode: {"ON" if same_mode_enabled else "OFF"}', True, BLACK)
+    plus_mode_text = font.render(f'Plus Mode: {"ON" if plus_mode_enabled else "OFF"}', True, BLACK)
+    DISPLAYSURF.blit(same_mode_text, (10, 540)) # was 20
+    DISPLAYSURF.blit(plus_mode_text, (10, 570)) # was 50
+
 # Function to place a card on the board
 def place_card(row, col, card):
     board[row][col] = card
     directions = [(-1, 0, 0, 1), (1, 0, 1, 0), (0, -1, 2, 3), (0, 1, 3, 2)]
+    
     for dr, dc, s1, s2 in directions:
         r, c = row + dr, col + dc
         if 0 <= r < GRID_SIZE and 0 <= c < GRID_SIZE and board[r][c]:
             if card.sides[s1] > board[r][c].sides[s2]:
                 board[r][c].animate_color_change(card.team)
 
+    # Check for "Same" rule if enabled
+    if same_mode_enabled:
+        same_adjacent = []
+        for dr, dc, s1, s2 in directions:
+            r, c = row + dr, col + dc
+            if 0 <= r < GRID_SIZE and 0 <= c < GRID_SIZE and board[r][c]:
+                if card.sides[s1] == board[r][c].sides[s2]:
+                    same_adjacent.append((r, c))
+        if len(same_adjacent) >= 2:
+            for r, c in same_adjacent:
+                board[r][c].animate_color_change(card.team)
+
+    # Check for "Plus" rule if enabled
+    if plus_mode_enabled:
+        plus_adjacent = []
+        for (dr1, dc1, s1a, s2a), (dr2, dc2, s1b, s2b) in zip(directions, directions[1:] + directions[:1]):
+            r1, c1 = row + dr1, col + dc1
+            r2, c2 = row + dr2, col + dc2
+            if 0 <= r1 < GRID_SIZE and 0 <= c1 < GRID_SIZE and board[r1][c1] and 0 <= r2 < GRID_SIZE and 0 <= c2 < GRID_SIZE and board[r2][c2]:
+                if card.sides[s1a] + board[r1][c1].sides[s2a] == card.sides[s1b] + board[r2][c2].sides[s2b]:
+                    plus_adjacent.append((r1, c1))
+                    plus_adjacent.append((r2, c2))
+        if plus_adjacent:
+            for r, c in plus_adjacent:
+                board[r][c].animate_color_change(card.team)
+
 # Function to display the title screen
 def show_title_screen():
     DISPLAYSURF.fill(GREY)
     font = pygame.font.Font(None, 74)
-    text = font.render('AENOCH', True, BLACK)
-    text_rect = text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2))
+    text = font.render('Triple Triad', True, BLACK)
+    text_rect = text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 - 50))
     DISPLAYSURF.blit(text, text_rect)
+
+    font = pygame.font.Font(None, 50)
+    text = font.render('Press any key to start', True, BLACK)
+    text_rect = text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 + 50))
+    DISPLAYSURF.blit(text, text_rect)
+
     pygame.display.update()
     waiting = True
     while waiting:
@@ -148,7 +188,7 @@ def show_title_screen():
             if event.type == KEYDOWN:
                 waiting = False
 
-# Function to display the team selection screen
+# Function to display the team selection screen with "Same" and "Plus" mode options
 def show_team_selection_screen():
     DISPLAYSURF.fill(GREY)
     font = pygame.font.Font(None, 50)
@@ -156,11 +196,20 @@ def show_team_selection_screen():
     blue_text = font.render('Blue Team', True, BLUE)
     red_rect = red_text.get_rect(center=(WINDOW_WIDTH // 4, WINDOW_HEIGHT // 2))
     blue_rect = blue_text.get_rect(center=(3 * WINDOW_WIDTH // 4, WINDOW_HEIGHT // 2))
+    same_mode_text = font.render('Same Mode: OFF', True, BLACK)
+    same_mode_rect = same_mode_text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 + 100))
+    plus_mode_text = font.render('Plus Mode: OFF', True, BLACK)
+    plus_mode_rect = plus_mode_text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 + 150))
     DISPLAYSURF.blit(red_text, red_rect)
     DISPLAYSURF.blit(blue_text, blue_rect)
+    DISPLAYSURF.blit(same_mode_text, same_mode_rect)
+    DISPLAYSURF.blit(plus_mode_text, plus_mode_rect)
     pygame.display.update()
-    global player_team
+    
+    global player_team, same_mode_enabled, plus_mode_enabled
     choosing = True
+    same_mode_enabled = False
+    plus_mode_enabled = False
     while choosing:
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -173,13 +222,25 @@ def show_team_selection_screen():
                 elif blue_rect.collidepoint(event.pos):
                     player_team = 'blue'
                     choosing = False
+                elif same_mode_rect.collidepoint(event.pos):
+                    same_mode_enabled = not same_mode_enabled
+                    same_mode_text = font.render(f'Same Mode: {"ON" if same_mode_enabled else "OFF"}', True, BLACK)
+                elif plus_mode_rect.collidepoint(event.pos):
+                    plus_mode_enabled = not plus_mode_enabled
+                    plus_mode_text = font.render(f'Plus Mode: {"ON" if plus_mode_enabled else "OFF"}', True, BLACK)
+                    
+                DISPLAYSURF.fill(GREY)
+                DISPLAYSURF.blit(red_text, red_rect)
+                DISPLAYSURF.blit(blue_text, blue_rect)
+                DISPLAYSURF.blit(same_mode_text, same_mode_rect)
+                DISPLAYSURF.blit(plus_mode_text, plus_mode_rect)
+                pygame.display.update()
 
-# turn indicator
+# Turn indicator
 def display_current_player():
     font = pygame.font.Font(None, 36)
     current_player_text = font.render(f"Current Turn: {'Red' if current_team == 'red' else 'Blue'}", True, BLACK)
     DISPLAYSURF.blit(current_player_text, (BOARD_ORIGIN_X, WINDOW_HEIGHT - 50))
-# turn indicator ^^
 
 # Function to display the game over screen
 def show_game_over_screen(winner):
@@ -207,14 +268,13 @@ def show_game_over_screen(winner):
                     show_team_selection_screen()
                     waiting = False
 
-# new addition vv
+# Check if the board is full
 def is_board_full():
     for row in range(GRID_SIZE):
         for col in range(GRID_SIZE):
             if board[row][col] is None:
                 return False
     return True
-# new addition ^^
 
 # Main game loop
 show_title_screen()
@@ -264,6 +324,8 @@ while True:
 
     # Check for game over
     if is_board_full():
+        pygame.display.update()
+        pygame.time.delay(2000)  # 2-second delay
         red_count = sum(card.team == 'red' for row in board for card in row if card)
         blue_count = sum(card.team == 'blue' for row in board for card in row if card)
         if red_count > blue_count:
