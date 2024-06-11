@@ -29,16 +29,64 @@ DISPLAYSURF = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption('Triple Triad')
 FPS_CLOCK = pygame.time.Clock()
 
+# image import v
+BORDER_IMAGE_PATH = 'card_game\images\card\IMG_0943.PNG'  # Replace with the path to your image file
+BORDER_IMAGE = pygame.image.load(BORDER_IMAGE_PATH)
+BORDER_IMAGE = pygame.transform.scale(BORDER_IMAGE, (CARD_WIDTH + 6, CARD_HEIGHT + 6))  # Adjust the size if necessary
+# image import ^
+
 # Card class
+# class Card:
+#     def __init__(self, team):
+#         self.team = team
+#         self.sides = [random.randint(1, 9) for _ in range(4)]  # top, bottom, left, right
+#         self.color = RED if team == 'red' else BLUE
+#         self.rect = pygame.Rect(0, 0, CARD_WIDTH, CARD_HEIGHT)
+
+#     def draw(self, surface):
+#         pygame.draw.rect(surface, self.color, self.rect)
+#         font = pygame.font.Font(None, 24)
+#         nums = [(self.rect.x + CARD_WIDTH // 2, self.rect.y + 5),
+#                 (self.rect.x + CARD_WIDTH // 2, self.rect.y + CARD_HEIGHT - 25),
+#                 (self.rect.x + 5, self.rect.y + CARD_HEIGHT // 2),
+#                 (self.rect.x + CARD_WIDTH - 25, self.rect.y + CARD_HEIGHT // 2)]
+#         for num, pos in zip(self.sides, nums):
+#             text = font.render(str(num), True, WHITE)
+#             text_rect = text.get_rect(center=pos)
+#             surface.blit(text, text_rect)
+
+#     def animate_color_change(self, new_team):
+#         old_color = self.color
+#         new_color = RED if new_team == 'red' else BLUE
+#         for i in range(24):
+#             ratio = i / 23
+#             self.color = (
+#                 int(old_color[0] * (1 - ratio) + new_color[0] * ratio),
+#                 int(old_color[1] * (1 - ratio) + new_color[1] * ratio),
+#                 int(old_color[2] * (1 - ratio) + new_color[2] * ratio)
+#             )
+#             draw_board()
+#             pygame.display.update()
+#             FPS_CLOCK.tick(FPS)
+#         self.team = new_team
+#         self.color = new_color
+
 class Card:
     def __init__(self, team):
         self.team = team
         self.sides = [random.randint(1, 9) for _ in range(4)]  # top, bottom, left, right
         self.color = RED if team == 'red' else BLUE
         self.rect = pygame.Rect(0, 0, CARD_WIDTH, CARD_HEIGHT)
+        self.border_image = BORDER_IMAGE
 
     def draw(self, surface):
+        # Draw border image
+        border_rect = self.border_image.get_rect(topleft=(self.rect.x - 3, self.rect.y - 3))  # Adjust offset to center the border
+        surface.blit(self.border_image, border_rect)
+
+        # Draw card
         pygame.draw.rect(surface, self.color, self.rect)
+
         font = pygame.font.Font(None, 24)
         nums = [(self.rect.x + CARD_WIDTH // 2, self.rect.y + 5),
                 (self.rect.x + CARD_WIDTH // 2, self.rect.y + CARD_HEIGHT - 25),
@@ -65,19 +113,32 @@ class Card:
         self.team = new_team
         self.color = new_color
 
+
 # Initialize board
+
+#zigzag start
 def initialize_board():
     global board, red_cards, blue_cards, dragging_card, current_team, player_team
     board = [[None for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
     red_cards = [Card('red') for _ in range(5)]
     blue_cards = [Card('blue') for _ in range(5)]
+
+    # Zigzag pattern for red cards
     for i, card in enumerate(red_cards):
-        card.rect.topleft = (BOARD_ORIGIN_X - CARD_WIDTH * 1.5, BOARD_ORIGIN_Y + i * (CARD_HEIGHT // 2))
+        x_offset = -CARD_WIDTH * 1.5 + (i % 2) * -60  # Adjust the x offset to create the zigzag
+        y_offset = BOARD_ORIGIN_Y + i * (CARD_HEIGHT // 2) * 1.1
+        card.rect.topleft = (BOARD_ORIGIN_X + x_offset, y_offset)
+
+    # Zigzag pattern for blue cards
     for i, card in enumerate(blue_cards):
-        card.rect.topleft = (BOARD_ORIGIN_X + GRID_SIZE * CARD_WIDTH + CARD_WIDTH // 2, BOARD_ORIGIN_Y + i * (CARD_HEIGHT // 2))
+        x_offset = GRID_SIZE * CARD_WIDTH + CARD_WIDTH // 2 + (i % 2) * 60  # Adjust the x offset to create the zigzag
+        y_offset = BOARD_ORIGIN_Y + i * (CARD_HEIGHT // 2) * 1.1
+        card.rect.topleft = (BOARD_ORIGIN_X + x_offset, y_offset)
+
     dragging_card = None
     current_team = random.choice(['red', 'blue'])
     player_team = None
+#zig zag end
 
 initialize_board()
 
