@@ -30,10 +30,64 @@ pygame.display.set_caption('Triple Triad')
 FPS_CLOCK = pygame.time.Clock()
 
 # image import v
-BORDER_IMAGE_PATH = 'card_game\images\card\IMG_0943.PNG'  # Replace with the path to your image file
+BORDER_IMAGE_PATH = 'card_game\images\card\IMG_0944.PNG'  # Replace with the path to your image file
 BORDER_IMAGE = pygame.image.load(BORDER_IMAGE_PATH)
-BORDER_IMAGE = pygame.transform.scale(BORDER_IMAGE, (CARD_WIDTH + 6, CARD_HEIGHT + 6))  # Adjust the size if necessary
+BORDER_IMAGE = pygame.transform.scale(BORDER_IMAGE, (CARD_WIDTH + 7, CARD_HEIGHT + 7))  # Adjust the size if necessary
 # image import ^
+
+# new cards stuff v
+
+TOTAL_CARDS = [
+    [1, 2, 3, 4], [4, 3, 2, 1], [5, 5, 5, 5], [6, 6, 6, 6],
+    [2, 3, 4, 5], [5, 4, 3, 2], [7, 7, 7, 7], [8, 8, 8, 8],
+    [3, 4, 5, 6], [6, 5, 4, 3], [9, 9, 9, 9], [1, 1, 1, 1],
+    [2, 2, 2, 2], [3, 3, 3, 3], [4, 4, 4, 4], [5, 5, 5, 5],
+    [6, 6, 6, 6], [7, 7, 8, 7], [8, 8, 8, 8], [9, 9, 7, 9],
+    [1, 2, 3, 4], [4, 3, 2, 1], [5, 6, 7, 8], [8, 7, 6, 5],
+    [1, 1, 1, 9], [9, 1, 1, 1], [2, 2, 2, 8], [8, 2, 2, 2],
+    [3, 3, 3, 7], [7, 3, 3, 3]
+]
+
+# Load images
+def load_images():
+    image_dict = {
+        1: pygame.image.load('card_game/images/card/33774.png'),
+        2: pygame.image.load('card_game/images/card/animal-monkey-silhouette-png.png'),
+        3: pygame.image.load('card_game/images/card/IMG_0946.png'),
+        4: pygame.image.load('card_game/images/card/314293.png'),
+        5: pygame.image.load('card_game/images/card/33774.png'),
+        6: pygame.image.load('card_game/images/card/animal-monkey-silhouette-png.png'),
+        7: pygame.image.load('card_game/images/card/IMG_0945.png'),
+        8: pygame.image.load('card_game/images/card/314293.png'),
+        9: pygame.image.load('card_game/images/card/33774.png'),
+        10: pygame.image.load('card_game/images/card/animal-monkey-silhouette-png.png'),
+        11: pygame.image.load('card_game/images/card/IMG_0946.png'),
+        12: pygame.image.load('card_game/images/card/314293.png'),
+        13: pygame.image.load('card_game/images/card/33774.png'),
+        14: pygame.image.load('card_game/images/card/animal-monkey-silhouette-png.png'),
+        15: pygame.image.load('card_game/images/card/simple-bird-flying-silhouette-08e636.webp'),
+        16: pygame.image.load('card_game/images/card/314293.png'),
+        17: pygame.image.load('card_game/images/card/33774.png'),
+        18: pygame.image.load('card_game/images/card/animal-monkey-silhouette-png.png'),
+        19: pygame.image.load('card_game/images/card/simple-bird-flying-silhouette-08e636.webp'),
+        20: pygame.image.load('card_game/images/card/314293.png'),
+        21: pygame.image.load('card_game/images/card/33774.png'),
+        22: pygame.image.load('card_game/images/card/animal-monkey-silhouette-png.png'),
+        23: pygame.image.load('card_game/images/card/IMG_0946.png'),
+        24: pygame.image.load('card_game/images/card/314293.png'),
+        25: pygame.image.load('card_game/images/card/33774.png'),
+        26: pygame.image.load('card_game/images/card/animal-monkey-silhouette-png.png'),
+        27: pygame.image.load('card_game/images/card/IMG_0946.png'),
+        28: pygame.image.load('card_game/images/card/314293.png'),
+        29: pygame.image.load('card_game/images/card/33774.png'),
+        30: pygame.image.load('card_game/images/card/animal-monkey-silhouette-png.png'),
+        # Add paths for all necessary images
+    }
+    for key in image_dict:
+        image_dict[key] = pygame.transform.scale(image_dict[key], (CARD_WIDTH, CARD_HEIGHT))
+    return image_dict
+
+images = load_images()
 
 # Card class
 # class Card:
@@ -72,12 +126,13 @@ BORDER_IMAGE = pygame.transform.scale(BORDER_IMAGE, (CARD_WIDTH + 6, CARD_HEIGHT
 #         self.color = new_color
 
 class Card:
-    def __init__(self, team):
+    def __init__(self, team, sides, image):
         self.team = team
-        self.sides = [random.randint(1, 9) for _ in range(4)]  # top, bottom, left, right
+        self.sides = sides  # top, bottom, left, right
         self.color = RED if team == 'red' else BLUE
         self.rect = pygame.Rect(0, 0, CARD_WIDTH, CARD_HEIGHT)
         self.border_image = BORDER_IMAGE
+        self.image = image
 
     def draw(self, surface):
         # Draw border image
@@ -86,6 +141,10 @@ class Card:
 
         # Draw card
         pygame.draw.rect(surface, self.color, self.rect)
+
+        if self.image:
+            image_rect = self.image.get_rect(center=self.rect.center)
+            surface.blit(self.image, image_rect)
 
         font = pygame.font.Font(None, 24)
         nums = [(self.rect.x + CARD_WIDTH // 2, self.rect.y + 5),
@@ -119,9 +178,15 @@ class Card:
 #zigzag start
 def initialize_board():
     global board, red_cards, blue_cards, dragging_card, current_team, player_team
+    random.shuffle(TOTAL_CARDS)
+    red_cards_data = TOTAL_CARDS[:5]
+    blue_cards_data = TOTAL_CARDS[5:10]
+    
+    red_cards = [Card('red', sides, images[sides[0]]) for sides in red_cards_data]
+    blue_cards = [Card('blue', sides, images[sides[0]]) for sides in blue_cards_data]
     board = [[None for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
-    red_cards = [Card('red') for _ in range(5)]
-    blue_cards = [Card('blue') for _ in range(5)]
+    # red_cards = [Card('red') for _ in range(5)]
+    # blue_cards = [Card('blue') for _ in range(5)]
 
     # Zigzag pattern for red cards
     for i, card in enumerate(red_cards):
@@ -215,16 +280,21 @@ def place_card(row, col, card):
     # Check for "Plus" rule if enabled
     if plus_mode_enabled:
         plus_adjacent = []
-        for (dr1, dc1, s1a, s2a), (dr2, dc2, s1b, s2b) in zip(directions, directions[1:] + directions[:1]):
+        for i, (dr1, dc1, s1a, s2a) in enumerate(directions):
             r1, c1 = row + dr1, col + dc1
-            r2, c2 = row + dr2, col + dc2
-            if 0 <= r1 < GRID_SIZE and 0 <= c1 < GRID_SIZE and board[r1][c1] and 0 <= r2 < GRID_SIZE and 0 <= c2 < GRID_SIZE and board[r2][c2]:
-                if card.sides[s1a] + board[r1][c1].sides[s2a] == card.sides[s1b] + board[r2][c2].sides[s2b]:
-                    plus_adjacent.append((r1, c1))
-                    plus_adjacent.append((r2, c2))
+            for j, (dr2, dc2, s1b, s2b) in enumerate(directions):
+                if i != j:  # Ensure we are not checking the same direction
+                    r2, c2 = row + dr2, col + dc2
+                    if (0 <= r1 < GRID_SIZE and 0 <= c1 < GRID_SIZE and 
+                        0 <= r2 < GRID_SIZE and 0 <= c2 < GRID_SIZE and 
+                        board[r1][c1] and board[r2][c2]):
+                        if card.sides[s1a] + board[r1][c1].sides[s2a] == card.sides[s1b] + board[r2][c2].sides[s2b]:
+                            plus_adjacent.append((r1, c1))
+                            plus_adjacent.append((r2, c2))
         if plus_adjacent:
             for r, c in plus_adjacent:
                 board[r][c].animate_color_change(card.team)
+
 
 # Function to display the title screen
 def show_title_screen():
