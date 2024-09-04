@@ -54,6 +54,48 @@ BG_Title_GO_IMAGE = pygame.image.load(BACKGROUND_forTitle_and_GO_PATH)
 BG_Title_GO_IMAGE = pygame.transform.scale(BG_Title_GO_IMAGE, (WINDOW_WIDTH, WINDOW_HEIGHT))
 # image import ^
 
+
+def fade_out(width, height): 
+    fade = pygame.Surface((width, height))
+    fade.fill(BLACK)
+    for alpha in range(0, 175):
+        fade.set_alpha(alpha)
+        # show_title_screen() # may need to change
+        DISPLAYSURF.blit(fade, (0,0))
+        pygame.display.update()
+        pygame.time.delay(3)
+        
+    
+def fade_in(width, height): 
+    fade = pygame.Surface((width, height))
+    fade.fill(BLACK)
+    for alpha in range(174, -1, -1):  # Start from 174 down to 0
+        fade.set_alpha(alpha)
+        DISPLAYSURF.blit(fade, (0, 0))
+        pygame.display.update()
+        pygame.time.delay(3)
+
+# def fade_in(duration):
+#     """Fades the screen in from black over a given duration."""
+#     clock = pygame.time.Clock()
+#     fade_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+#     fade_surface.fill(BLACK)
+#     alpha = 255  # Start with fully opaque
+
+#     while alpha > 0:
+#         for event in pygame.event.get():
+#             if event.type == pygame.QUIT:
+#                 pygame.quit()
+#                 sys.exit()
+
+#         alpha -= (255 / duration) * (clock.tick(60) / 1000.0)
+#         if alpha < 0:
+#             alpha = 0
+#         fade_surface.set_alpha(alpha)
+#         DISPLAYSURF.blit(fade_surface, (0, 0))
+#         pygame.display.update()
+
+
 # new cards stuff v
 
 TOTAL_CARDS = [
@@ -237,6 +279,7 @@ def draw_board():
     plus_mode_text = font.render(f'Plus Mode: {"ON" if plus_mode_enabled else "OFF"}', True, BLACK)
     DISPLAYSURF.blit(same_mode_text, (10, 900)) # sets position of the same mode rect on dsiplay
     DISPLAYSURF.blit(plus_mode_text, (10, 930)) # sets position of the plus mode rect on dsiplay
+    
 
 # Function to place a card on the board
 def place_card(row, col, card):
@@ -332,6 +375,7 @@ def show_title_screen():
     text = font.render('Press any key to start', True, BLACK)
     text_rect = text.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 + 50))
     DISPLAYSURF.blit(text, text_rect)
+    
 
     pygame.display.update()
     waiting = True
@@ -343,8 +387,14 @@ def show_title_screen():
             if event.type == KEYDOWN:
                 waiting = False
 
+    fade_out(WINDOW_WIDTH, WINDOW_HEIGHT)
+    
+
+    
+
 # Function to display the team selection screen with "Same" and "Plus" mode options
 def show_team_selection_screen():
+    
     DISPLAYSURF.blit(BG_Title_GO_IMAGE, (0, 0))
     font = pygame.font.Font('fonts/adon/Adon Black.otf', 40)
     red_text = font.render('Red Team', True, RED)
@@ -391,6 +441,8 @@ def show_team_selection_screen():
                 DISPLAYSURF.blit(plus_mode_text, plus_mode_rect)
                 pygame.display.update()
 
+    fade_out(WINDOW_WIDTH, WINDOW_HEIGHT)
+
 # Turn indicator
 def display_current_player():
     font = pygame.font.Font('fonts/aesthico/Aesthico(Demo)-Regular.ttf', 20)
@@ -411,6 +463,7 @@ def show_game_over_screen(winner):
     DISPLAYSURF.blit(new_game_text, new_game_rect)
 
     pygame.display.update()
+    
     waiting = True
     while waiting:
         for event in pygame.event.get():
@@ -419,9 +472,12 @@ def show_game_over_screen(winner):
                 sys.exit()
             if event.type == MOUSEBUTTONDOWN:
                 if new_game_rect.collidepoint(event.pos):
+                    fade_out(WINDOW_WIDTH, WINDOW_HEIGHT) # proper place for fade out in game over screen
                     initialize_board()
                     show_team_selection_screen()
                     waiting = False
+
+    
 
 # Check if the board is full
 def is_board_full():
@@ -474,13 +530,17 @@ while True:
                 mouse_x, mouse_y = event.pos
                 dragging_card.rect.topleft = (mouse_x + drag_offset_x, mouse_y + drag_offset_y)
     
+    
     draw_board()
     display_current_player()
+    
 
     # Check for game over
     if is_board_full():
         pygame.display.update()
         pygame.time.delay(1000)  # 2-second delay
+        fade_out(WINDOW_WIDTH, WINDOW_HEIGHT)
+
         red_count = sum(card.team == 'red' for row in board for card in row if card)
         blue_count = sum(card.team == 'blue' for row in board for card in row if card)
         if red_count > blue_count:
@@ -490,6 +550,7 @@ while True:
         else:
             winner = 'Draw'
         show_game_over_screen(winner)
+
     
     pygame.display.update()
     FPS_CLOCK.tick(FPS)
