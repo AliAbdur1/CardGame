@@ -46,7 +46,7 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 # RED = (255, 0, 0)
 RED = (172, 19, 45) # pygame will accept HEX code for colors but this creates issue for color change animation function
-# BLUE = (0, 0, 255)
+YELLOW = (255, 255, 0)
 BLUE = (19, 114, 172)
 GREY = (200, 200, 200)
 GREEN = (42, 197, 81)
@@ -80,6 +80,17 @@ BG_board_IMAGE = pygame.transform.scale(BG_baord_IMAGE, (WINDOW_WIDTH, WINDOW_HE
 BG_Title_GO_IMAGE = pygame.image.load(BACKGROUND_forTitle_and_GO_PATH)
 BG_Title_GO_IMAGE = pygame.transform.scale(BG_Title_GO_IMAGE, (WINDOW_WIDTH, WINDOW_HEIGHT))
 # image import ^
+
+# Define the selection modes
+DECK_SELECTION = 0
+GRID_SELECTION = 1
+
+# Start in deck selection mode
+selection_mode = DECK_SELECTION
+
+selected_card_index = 0
+grid_row, grid_col = 0, 0
+
 
 
 def fade_out(width, height): 
@@ -510,34 +521,29 @@ while True:
         if event.type == QUIT:
             pygame.quit()
             sys.exit()
-        
+
         elif event.type == MOUSEBUTTONDOWN:
             mouse_x, mouse_y = event.pos
 
-            # Check if pause button is clicked
+            # Handle pause/play/volume controls for music...
             if pause_button_rect.collidepoint(mouse_x, mouse_y):
                 pygame.mixer.music.pause()
-
-            # Check if play button is clicked
             elif play_button_rect.collidepoint(mouse_x, mouse_y):
                 pygame.mixer.music.unpause()
-
-            # Check if volume up button is clicked
             elif volume_up_rect.collidepoint(mouse_x, mouse_y):
                 current_volume = min(1.0, current_volume + 0.1)
                 pygame.mixer.music.set_volume(current_volume)
-
-            # Check if volume down button is clicked
             elif volume_down_rect.collidepoint(mouse_x, mouse_y):
                 current_volume = max(0.0, current_volume - 0.1)
                 pygame.mixer.music.set_volume(current_volume)
 
-            # If no music button is clicked, handle card dragging
+            # Handle card dragging if no music button is clicked
             else:
                 if current_team == 'red':
                     for card in red_cards:
                         if card.rect.collidepoint(event.pos):
                             dragging_card = card
+                            # Define drag offsets when the card is clicked
                             drag_offset_x = card.rect.x - mouse_x
                             drag_offset_y = card.rect.y - mouse_y
                             break
@@ -545,6 +551,7 @@ while True:
                     for card in blue_cards:
                         if card.rect.collidepoint(event.pos):
                             dragging_card = card
+                            # Define drag offsets when the card is clicked
                             drag_offset_x = card.rect.x - mouse_x
                             drag_offset_y = card.rect.y - mouse_y
                             break
@@ -566,12 +573,71 @@ while True:
         elif event.type == MOUSEMOTION:
             if dragging_card:
                 mouse_x, mouse_y = event.pos
+                # Update the position of the card based on the drag offsets
                 dragging_card.rect.topleft = (mouse_x + drag_offset_x, mouse_y + drag_offset_y)
-  
-    
+
+        # Handle arrow key navigation
+        elif event.type == KEYDOWN:
+            # Determine the deck based on the current team
+            deck = red_cards if current_team == 'red' else blue_cards
+
+            if selection_mode == DECK_SELECTION:
+                # Navigate through the deck with arrow keys
+                if event.key == pygame.K_UP or event.key == pygame.K_LEFT:  # Move up/left in the deck
+                    selected_card_index = (selected_card_index - 1) % len(deck)
+                elif event.key == pygame.K_DOWN or event.key == pygame.K_RIGHT:  # Move down/right in the deck
+                    selected_card_index = (selected_card_index + 1) % len(deck)
+
+                # When Enter or Space is pressed, select the card and switch to grid selection mode
+                if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+                    selected_card = deck[selected_card_index]
+                    selection_mode = GRID_SELECTION  # Switch to grid selection
+
+            elif selection_mode == GRID_SELECTION:
+                # Navigate through the grid with arrow keys
+                if event.key == pygame.K_UP:  # Move up on the grid
+                    grid_row = max(0, grid_row - 1)
+                elif event.key == pygame.K_DOWN:  # Move down on the grid
+                    grid_row = min(GRID_SIZE - 1, grid_row + 1)
+                elif event.key == pygame.K_LEFT:  # Move left on the grid
+                    grid_col = max(0, grid_col - 1)
+                elif event.key == pygame.K_RIGHT:  # Move right on the grid
+                    grid_col = min(GRID_SIZE - 1, grid_col + 1)
+
+                # Place the selected card using Enter or Space, then switch back to deck selection mode
+                if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+                    if board[grid_row][grid_col] is None:
+                        place_card(grid_row, grid_col, selected_card)
+                        deck.remove(selected_card)
+                        current_team = 'blue' if current_team == 'red' else 'red'
+                        selected_card_index = 0  # Reset selected index
+                        selection_mode = DECK_SELECTION  # Switch back to deck selection mode
+
+    # ---- Drawing Section ----
+    DISPLAYSURF.fill(BLACK)  # Clear the screen with a background color (BLACK)
+
+    # Draw the game board first
     draw_board()
+
+    if selection_mode == GRID_SELECTION:
+        # Highlight the current grid cell for card placement
+        pygame.draw.rect(DISPLAYSURF, YELLOW, 
+                         (BOARD_ORIGIN_X + grid_col * CARD_WIDTH, BOARD_ORIGIN_Y + grid_row * CARD_HEIGHT, CARD_WIDTH, CARD_HEIGHT), 3)
+
+    # Draw the deck of cards for the current player (either red or blue team)
+    for card in red_cards:
+        card.draw(DISPLAYSURF)  # Draw all red team cards
+    for card in blue_cards:
+        card.draw(DISPLAYSURF)  # Draw all red team cards
+
+    if selection_mode == DECK_SELECTION:
+        # Highlight the currently selected card in the deck
+        selected_card = red_cards[selected_card_index] if current_team == 'red' else blue_cards[selected_card_index]
+        pygame.draw.rect(DISPLAYSURF, YELLOW, selected_card.rect.inflate(10, 10), 3)  # Draw yellow border around selected card
+
+
+    # Draw the current player
     display_current_player()
-    
 
     # Check for game over
     if is_board_full():
@@ -589,6 +655,6 @@ while True:
             winner = 'Draw'
         show_game_over_screen(winner)
 
-    
+    # Refresh the display
     pygame.display.update()
     FPS_CLOCK.tick(FPS)
