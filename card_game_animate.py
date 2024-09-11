@@ -1,5 +1,4 @@
 import os
-import math
 import pygame
 import sys
 import random
@@ -56,12 +55,6 @@ GREEN = (42, 197, 81)
 pygame.mixer.music.load('music/9convert.com - Hades II  The Silver Sisters.mp3')  # Adjust to your file path
 pygame.mixer.music.play(-1)  # Loop indefinitely
 pygame.mixer.music.set_volume(0.5)
-
-# sounds
-card_flip_sound = pygame.mixer.Sound('music/soundFX/card_color_change_sound.mp3')
-selection_is_made_sound = pygame.mixer.Sound('music/soundFX/select_something.mp3')
-new_game_sound = pygame.mixer.Sound('music/soundFX/new_game.mp3')
-# sounds
 # music ^
 
 # Set up display
@@ -215,8 +208,6 @@ class Card:
     def animate_color_change(self, new_team):
         old_color = self.color
         new_color = RED if new_team == 'red' else BLUE
-        card_flip_sound.set_volume(0.4)
-        card_flip_sound.play()
         for i in range(24):
             ratio = i / 23
             self.color = (
@@ -402,8 +393,8 @@ def place_card(row, col, card):
 
 
 # card move animation V
-def animate_card_movement(card, start_pos, end_pos, duration=550, arc_height=500):
-    """Animates a card moving from start_pos to end_pos over a given duration with an arc."""
+def animate_card_movement(card, start_pos, end_pos, duration=500):
+    """Animates a card moving from start_pos to end_pos over a given duration in milliseconds."""
     clock = pygame.time.Clock()
     start_time = pygame.time.get_ticks()  # Record the start time
     while True:
@@ -413,15 +404,9 @@ def animate_card_movement(card, start_pos, end_pos, duration=550, arc_height=500
         # Calculate how far along the animation we are (a value between 0 and 1)
         t = min(elapsed_time / duration, 1)
 
-        # Linear interpolation for horizontal (x-axis) movement
+        # Interpolate between the start and end positions based on the elapsed time
         new_x = (1 - t) * start_pos[0] + t * end_pos[0]
-
-        # Parabolic interpolation for vertical (y-axis) movement
-        # We use a parabola formula: arc_offset = arc_height * (1 - (2*t - 1)^2)
-        # This gives the card a curved movement, peaking in the middle
-        midpoint_x = (start_pos[0] + end_pos[0]) / 2
-        arc_offset = arc_height * (1 - (2 * t - 1) ** 2)  # This creates the arc
-        new_y = (1 - t) * start_pos[1] + t * end_pos[1] - arc_offset
+        new_y = (1 - t) * start_pos[1] + t * end_pos[1]
 
         # Update card's position
         card.rect.topleft = (new_x, new_y)
@@ -450,59 +435,6 @@ def score_card(card):
     """Simple scoring system: sum of the card's sides."""
     return sum(card.sides)
 
-def score_position_control(row, col):
-    """Score a position based on its control value (center, edges, corners)."""
-    if row == GRID_SIZE // 2 and col == GRID_SIZE // 2:  # Center
-        return 5  # High control score for the center
-    elif row in [0, GRID_SIZE - 1] and col in [0, GRID_SIZE - 1]:  # Corners
-        return 3  # Lower score for corners
-    elif row in [0, GRID_SIZE - 1] or col in [0, GRID_SIZE - 1]:  # Edges
-        return 2  # Medium score for edges
-    return 1  # Default score for non-strategic positions
-
-def score_blocking_player(row, col, card):
-    """Score based on how well this move blocks the player's moves."""
-    score = 0
-
-    # Check neighboring positions to see if we can block a player move
-    if row > 0 and board[row - 1][col]:  # Above
-        neighbor = board[row - 1][col]
-        if neighbor.team == player_team:
-            score += card.sides[0] - neighbor.sides[1]  # Compare top of current card with bottom of player card
-
-    if row < GRID_SIZE - 1 and board[row + 1][col]:  # Below
-        neighbor = board[row + 1][col]
-        if neighbor.team == player_team:
-            score += card.sides[1] - neighbor.sides[0]  # Compare bottom of current card with top of player card
-
-    if col > 0 and board[row][col - 1]:  # Left
-        neighbor = board[row][col - 1]
-        if neighbor.team == player_team:
-            score += card.sides[2] - neighbor.sides[3]  # Compare left of current card with right of player card
-
-    if col < GRID_SIZE - 1 and board[row][col + 1]:  # Right
-        neighbor = board[row][col + 1]
-        if neighbor.team == player_team:
-            score += card.sides[3] - neighbor.sides[2]  # Compare right of current card with left of player card
-
-    return score
-
-def score_future_potential(row, col):
-    """Score based on how many future moves are possible after placing a card."""
-    potential_moves = 0
-
-    # Count how many adjacent positions are open (can place future cards)
-    if row > 0 and board[row - 1][col] is None:  # Above
-        potential_moves += 1
-    if row < GRID_SIZE - 1 and board[row + 1][col] is None:  # Below
-        potential_moves += 1
-    if col > 0 and board[row][col - 1] is None:  # Left
-        potential_moves += 1
-    if col < GRID_SIZE - 1 and board[row][col + 1] is None:  # Right
-        potential_moves += 1
-
-    return potential_moves
-
 def ai_select_best_card():
     """AI selects the best card based on the scoring system."""
     available_cards = blue_cards if ai_team == 'blue' else red_cards
@@ -515,20 +447,23 @@ def ai_select_best_card():
 
 def score_position(row, col, card):
     """Evaluate the score of placing a card at a given position on the grid."""
-    control_weight = 1.5
-    block_weight = 2.0
-    future_weight = 1.0
-    strength_weight = 1.0
+    score = 0
+    
+    # Check adjacent cells and compare sides of the card with neighboring cards
+    if row > 0 and board[row - 1][col]:  # Card above
+        neighbor = board[row - 1][col]
+        score += card.sides[0] - neighbor.sides[1]  # Compare top of current card with bottom of neighbor
+    if row < GRID_SIZE - 1 and board[row + 1][col]:  # Card below
+        neighbor = board[row + 1][col]
+        score += card.sides[1] - neighbor.sides[0]  # Compare bottom of current card with top of neighbor
+    if col > 0 and board[row][col - 1]:  # Card to the left
+        neighbor = board[row][col - 1]
+        score += card.sides[2] - neighbor.sides[3]  # Compare left of current card with right of neighbor
+    if col < GRID_SIZE - 1 and board[row][col + 1]:  # Card to the right
+        neighbor = board[row][col + 1]
+        score += card.sides[3] - neighbor.sides[2]  # Compare right of current card with left of neighbor
 
-    # Calculate score based on different factors
-    control_score = score_position_control(row, col) * control_weight
-    blocking_score = score_blocking_player(row, col, card) * block_weight
-    future_score = score_future_potential(row, col) * future_weight
-    strength_score = score_card(card) * strength_weight
-
-    # Combine the scores
-    total_score = control_score + blocking_score + future_score + strength_score
-    return total_score
+    return score
 
 def ai_find_best_position(card):
     """Find the best position for a given card based on the scoring system."""
@@ -625,7 +560,6 @@ def show_title_screen():
             if event.type == KEYDOWN:
                 waiting = False
 
-    selection_is_made_sound.play()
     fade_out(WINDOW_WIDTH, WINDOW_HEIGHT)
     
 
@@ -697,7 +631,6 @@ def show_team_selection_screen():
                 pygame.display.update()
 
     # Optional fade-out effect after selection
-    selection_is_made_sound.play()
     fade_out(WINDOW_WIDTH, WINDOW_HEIGHT)
 
 # Turn indicator
@@ -729,15 +662,10 @@ def show_game_over_screen(winner):
                 sys.exit()
             if event.type == MOUSEBUTTONDOWN:
                 if new_game_rect.collidepoint(event.pos):
-                    new_game_sound.set_volume(0.3)
-                    new_game_sound.play()
                     fade_out(WINDOW_WIDTH, WINDOW_HEIGHT) # proper place for fade out in game over screen
                     initialize_board()
                     show_team_selection_screen()
                     waiting = False
-
-    
-    
 
     
 
