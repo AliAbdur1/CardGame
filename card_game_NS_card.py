@@ -129,14 +129,36 @@ def fade_in(width, height):
 # new cards stuff v
 
 TOTAL_CARDS = [
-    [1, 2, 3, 4], [4, 3, 2, 1], [5, 5, 5, 5], [6, 6, 6, 6],
-    [2, 3, 4, 5], [5, 4, 3, 2], [7, 7, 7, 7], [8, 8, 8, 8],
-    [3, 4, 5, 6], [6, 5, 4, 3], [9, 9, 9, 9], [1, 1, 1, 1],
-    [2, 2, 2, 2], [3, 3, 3, 3], [4, 4, 4, 4], [5, 5, 5, 5],
-    [6, 6, 6, 6], [7, 7, 8, 7], [8, 8, 8, 8], [9, 9, 7, 9],
-    [1, 2, 3, 4], [4, 3, 2, 1], [5, 6, 7, 8], [8, 7, 6, 5],
-    [1, 1, 1, 9], [9, 1, 1, 1], [2, 2, 2, 8], [8, 2, 2, 2],
-    [3, 3, 3, 7], [7, 3, 3, 3]
+    ([1, 2, 3, 4], "Horse", "Just a fuckin horse"),
+    ([4, 3, 2, 1], "Cheif, Lestolen", "Warrior prince of the Zoraznor plaines"),
+    ([5, 5, 5, 5], "Something", "blah blah blah blah"),
+    ([6, 6, 6, 6], "Something", "blah blah blah blah"),
+    ([2, 3, 4, 5], "Green bat", "Emits a piercing scream that disorents its prey"),
+    ([5, 4, 3, 2], "Something", "blah blah blah blah"), 
+    ([7, 7, 7, 7], "Something", "blah blah blah blah"), 
+    ([8, 8, 8, 8], "Something", "blah blah blah blah"),
+    ([3, 4, 5, 6], "Something", "blah blah blah blah"), 
+    ([6, 5, 4, 3], "Something", "blah blah blah blah"), 
+    ([9, 9, 9, 9], "Something", "blah blah blah blah"), 
+    ([1, 1, 1, 1],"Blue goo", "can consume and drown the average adult"),
+    ([2, 2, 2, 2], "Green bat", "Emits a piercing scream that disorents its prey"), 
+    ([3, 3, 3, 3], "Something", "blah blah blah blah"), 
+    ([4, 4, 4, 4], "Something", "blah blah blah blah"), 
+    ([5, 5, 5, 5], "Something", "blah blah blah blah"),
+    ([6, 6, 6, 6], "Something", "blah blah blah blah"), 
+    ([7, 7, 8, 7], "Something", "blah blah blah blah"), 
+    ([8, 8, 8, 8], "Something", "blah blah blah blah"), 
+    ([9, 9, 7, 9], "Something", "blah blah blah blah"),
+    ([1, 2, 3, 4], "Something", "blah blah blah blah"), 
+    ([4, 3, 2, 1], "Lestolen, the Hunter", "Warrior prince of the Zoraznor plaines"), 
+    ([5, 6, 7, 8], "Something", "blah blah blah blah"), 
+    ([8, 7, 6, 5], "Something", "blah blah blah blah"),
+    ([1, 1, 1, 9], "Something", "blah blah blah blah"), 
+    ([9, 1, 1, 1], "Lestolen's horse", "Boy was fast as fuck!!"), 
+    ([2, 2, 2, 8], "Something", "blah blah blah blah"), 
+    ([8, 2, 2, 2], "Something", "blah blah blah blah"),
+    ([3, 3, 3, 7], "Something", "blah blah blah blah"), 
+    ([7, 3, 3, 3], "Green bat", "Emits a piercing scream")
 ]
 
 # Load images
@@ -182,13 +204,15 @@ images = load_images()
 
 
 class Card:
-    def __init__(self, team, sides, image):
+    def __init__(self, team, sides, image, name, statement):
         self.team = team
         self.sides = sides  # top, bottom, left, right
         self.color = RED if team == 'red' else BLUE
         self.rect = pygame.Rect(0, 0, CARD_WIDTH, CARD_HEIGHT)
         self.border_image = BORDER_IMAGE
         self.image = image
+        self.name = name
+        self.statement = statement
 
     def draw(self, surface):
         # Draw border image
@@ -211,6 +235,12 @@ class Card:
             text = font.render(str(num), True, TYPE_ON_CARDS)
             text_rect = text.get_rect(center=pos)
             surface.blit(text, text_rect)
+
+        # Draw card name in the top-right corner of the card
+        name_font = pygame.font.Font('fonts/old_celtiberian/Old Celtiberians.otf', 15) # Small font for card name
+        name_text = name_font.render(self.name, True, (TYPE_ON_CARDS))  # White text
+        name_rect = name_text.get_rect(topright=(self.rect.right - 5, self.rect.top + 5))  # Top-right corner
+        surface.blit(name_text, name_rect)
 
     def animate_color_change(self, new_team):
         # Store the current color (before change) and determine the new color (based on team)
@@ -255,12 +285,10 @@ def initialize_board():
     red_cards_data = TOTAL_CARDS[:5]
     blue_cards_data = TOTAL_CARDS[5:10]
     
-    red_cards = [Card('red', sides, images[sides[0]]) for sides in red_cards_data]
-    blue_cards = [Card('blue', sides, images[sides[0]]) for sides in blue_cards_data]
+    red_cards = [Card('red', sides, images[sides[0]], name, statement) for sides, name, statement in red_cards_data]
+    blue_cards = [Card('blue', sides, images[sides[0]], name, statement) for sides, name, statement in blue_cards_data]
     board = [[None for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
-    # red_cards = [Card('red') for _ in range(5)]
-    # blue_cards = [Card('blue') for _ in range(5)]
-
+    
     # Zigzag pattern for red cards
     for i, card in enumerate(red_cards):
         x_offset = -CARD_WIDTH * 1.5 + (i % 2) * -60  # Adjust the x offset to create the zigzag
@@ -333,6 +361,15 @@ def draw_board():
     DISPLAYSURF.blit(same_mode_text, (10, 900)) # sets position of the same mode rect on dsiplay
     DISPLAYSURF.blit(plus_mode_text, (10, 930)) # sets position of the plus mode rect on dsiplay
     
+def display_card_statement(statement):
+    statement_rect = pygame.Rect(220, WINDOW_HEIGHT - 100, WINDOW_WIDTH - 430, 50)  # Rect at bottom of the screen
+    pygame.draw.rect(DISPLAYSURF, (0, 0, 0), statement_rect)  # Black background
+    pygame.draw.rect(DISPLAYSURF, (255, 255, 255), statement_rect, 2)  # White border
+
+    font = pygame.font.Font(None, 24)  # Font for the statement text
+    statement_text = font.render(statement, True, (255, 255, 255))  # White text
+    text_rect = statement_text.get_rect(center=statement_rect.center)
+    DISPLAYSURF.blit(statement_text, text_rect)
 
 # Function to place a card on the board
 def place_card(row, col, card):
@@ -903,7 +940,8 @@ while True:
         if deck:  # Ensure the deck has cards before trying to highlight
             selected_card = red_cards[selected_card_index] if player_team == 'red' else blue_cards[selected_card_index]
             pygame.draw.rect(DISPLAYSURF, YELLOW, selected_card.rect.inflate(10, 10), 3)  # Draw yellow border around selected card
-
+             # Display the card's statement at the bottom of the screen
+            display_card_statement(selected_card.statement)
     # Draw the current player
     display_current_player()
 
